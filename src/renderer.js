@@ -53,7 +53,13 @@ export class Renderer {
     while (this.cubeGroup.children.length > 0) {
       const child = this.cubeGroup.children[0];
       if (child.geometry) child.geometry.dispose();
-      if (child.material) child.material.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach(m => m.dispose());
+        } else if (typeof child.material.dispose === 'function') {
+          child.material.dispose();
+        }
+      }
       this.cubeGroup.remove(child);
     }
 
