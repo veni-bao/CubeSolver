@@ -1,0 +1,18 @@
+{
+  "name": "cube-solver",
+  "version": "1.0.0",
+  "description": "N-order Rubik's Cube Visual Solver with animated solving",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.162.0",
+    "@tweenjs/tween.js": "^23.1.1"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0"
+  }
+}

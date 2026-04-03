@@ -1,0 +1,60 @@
+{
+  "decisions": [
+    {
+      "id": "D001",
+      "date": "2026-04-03",
+      "category": "architecture",
+      "title": "Vite project structure",
+      "details": "Using Vite + ES modules for better development experience",
+      "alternatives": ["Single HTML - rejected due to scalability issues"]
+    },
+    {
+      "id": "D002",
+      "date": "2026-04-03",
+      "category": "algorithm",
+      "title": "Solver approach for N≤3",
+      "details": "CFOP-based solver with Kociemba-inspired pruning",
+      "alternatives": ["Layer-by-layer beginner - rejected due to being too slow"]
+    },
+    {
+      "id": "D003",
+      "date": "2026-04-03",
+      "category": "algorithm",
+      "title": "Solver approach for N>3",
+      "details": "Reduction method: solve centers, pair edges, reduce to 3x3x3, then CFOP",
+      "alternatives": ["Direct CFOP on all pieces - rejected due to exponential complexity"]
+    },
+    {
+      "id": "D004",
+      "date": "2026-04-03",
+      "category": "rendering",
+      "title": "LOD rendering strategy",
+      "details": "N≤6: individual meshes, N7-15: instanced, N>15: surface-only",
+      "alternatives": ["Always individual meshes - rejected for performance"]
+    },
+    {
+      "id": "D005",
+      "date": "2026-04-03",
+      "category": "project",
+      "title": "N range 1-100",
+      "details": "Full range supported with adaptive rendering",
+      "rationale": "User requirement"
+    },
+    {
+      "id": "D006",
+      "date": "2026-04-03",
+      "category": "project",
+      "title": "Dark theme, English UI",
+      "details": "Modern dark theme with English interface",
+      "rationale": "User preference"
+    },
+    {
+      "id": "D007",
+      "date": "2026-04-03",
+      "category": "project",
+      "title": "Scramble: true random ~20-30 moves",
+      "details": "Using Math.random() for scramble generation",
+      "rationale": "User preference"
+    }
+  ]
+}

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>N-Order Rubik's Cube Solver</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      overflow: hidden;
+    }
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    #header {
+      padding: 16px 24px;
+      background: #16213e;
+      border-bottom: 1px solid #0f3460;
+    }
+    #header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #e94560;
+    }
+    #main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    #canvas-container {
+      flex: 1;
+      position: relative;
+    }
+    #canvas-container canvas {
+      display: block;
+    }
+    #controls {
+      width: 320px;
+      padding: 20px;
+      background: #16213e;
+      border-left: 1px solid #0f3460;
+      overflow-y: auto;
+    }
+    .control-group {
+      margin-bottom: 24px;
+    }
+    .control-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.875rem;
+      color: #a0a0a0;
+    }
+    .control-group input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: #0f3460;
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    .control-group input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      background: #e94560;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .control-value {
+      text-align: center;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #fff;
+      margin-top: 8px;
+    }
+    .btn {
+      width: 100%;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #e94560;
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #ff6b6b;
+    }
+    .btn-primary:disabled {
+      background: #4a4a6a;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: #0f3460;
+      color: #fff;
+    }
+    .btn-secondary:hover {
+      background: #1a4a8a;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-box {
+      background: #0f3460;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: #a0a0a0;
+    }
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #fff;
+    }
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #0f3460;
+      border-top-color: #e94560;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="header">
+      <h1>N-Order Rubik's Cube Solver</h1>
+    </div>
+    <div id="main">
+      <div id="canvas-container">
+        <div id="loading">
+          <div class="spinner"></div>
+          <p>Initializing...</p>
+        </div>
+      </div>
+      <div id="controls">
+        <div class="control-group">
+          <label>N Value (1-100)</label>
+          <input type="range" id="n-slider" min="1" max="100" value="3">
+          <div class="control-value" id="n-value">3</div>
+        </div>
+        <div class="control-group">
+          <label>Animation Speed</label>
+          <input type="range" id="speed-slider" min="0.1" max="5" step="0.1" value="1">
+          <div class="control-value" id="speed-value">1.0x</div>
+        </div>
+        <div class="stats">
+          <div class="stat-box">
+            <div class="stat-label">Moves</div>
+            <div class="stat-value" id="move-count">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Status</div>
+            <div class="stat-value" id="status">Idle</div>
+          </div>
+        </div>
+        <div class="control-group">
+          <button class="btn btn-secondary" id="scramble-btn">Scramble</button>
+        </div>
+        <div class="control-group">
+          <button class="btn btn-primary" id="solve-btn" disabled>Solve</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
