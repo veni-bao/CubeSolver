@@ -154,9 +154,8 @@ class App {
     TWEEN.update();
     this.controls.update();
     
-    if (this.needsRender && this.cube) {
+    if (this.cube && this.renderer) {
       this.renderer.render(this.cube);
-      this.needsRender = false;
     }
   }
 }

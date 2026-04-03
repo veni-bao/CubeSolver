@@ -9,16 +9,18 @@ export class Renderer {
     this.canvas.style.width = '100%';
     this.canvas.style.height = '100%';
     this.canvas.style.display = 'block';
+    this.canvas.style.backgroundColor = '#1a1a2e';
     
     this.renderer = new THREE.WebGLRenderer({ 
       antialias: true, 
-      alpha: true,
+      alpha: false,
       canvas: this.canvas
     });
     
     const width = this.container.clientWidth || 800;
     const height = this.container.clientHeight || 600;
     this.renderer.setSize(width, height);
+    this.renderer.setClearColor(0x1a1a2e);
     
     this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
     this.domElement = this.canvas;
@@ -50,6 +52,8 @@ export class Renderer {
   }
 
   render(cube) {
+    if (!cube) return;
+    
     while (this.cubeGroup.children.length > 0) {
       const child = this.cubeGroup.children[0];
       if (child.geometry) child.geometry.dispose();
@@ -68,6 +72,8 @@ export class Renderer {
     } else {
       this.renderInstancedOptimized(cube);
     }
+
+    this.renderer.render(this.scene, this.camera);
   }
 
   renderIndividual(cube) {
