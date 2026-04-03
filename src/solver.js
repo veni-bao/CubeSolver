@@ -1,27 +1,41 @@
-import { Cube, FACES, BASE_MOVES } from './cube.js';
+import { Cube, BASE_MOVES } from './cube.js';
 
 export class Solver {
   constructor() {
-    this.phase1Algorithms = this.initPhase1Algorithms();
-    this.phase2Algorithms = this.initPhase2Algorithms();
+    this.phase1Moves = [];
+    this.initMoveTables();
+  }
+
+  initMoveTables() {
+    for (let i = 0; i < 6; i++) {
+      this.phase1Moves[i] = [];
+      for (let j = 0; j < 3; j++) {
+        const cube = new Cube(3);
+        const face = BASE_MOVES[i];
+        for (let k = 0; k <= j; k++) {
+          cube.move(face, false);
+        }
+        this.phase1Moves[i][j] = cube;
+      }
+    }
   }
 
   solve(cube) {
     if (cube.n <= 3) {
-      return this.solveSmallCube(cube);
+      return this.solve3x3(cube);
     } else {
-      return this.solveLargeCube(cube);
+      return this.solveNxN(cube);
     }
   }
 
-  solveSmallCube(cube) {
+  solve3x3(cube) {
     const solution = [];
     const testCube = cube.clone();
-    const maxIterations = 500;
+    const maxIterations = 1000;
     let iterations = 0;
 
     while (!testCube.isSolved() && iterations < maxIterations) {
-      const move = this.findNextMove(testCube);
+      const move = this.findBestMove(testCube);
       if (move) {
         testCube.move(move, true);
         solution.push(move);
@@ -32,205 +46,144 @@ export class Solver {
     return this.optimizeSolution(solution);
   }
 
-  findNextMove(cube) {
-    if (this.isWhiteCrossSolved(cube)) {
-      return this.findF2LMove(cube);
-    } else {
-      return this.findCrossMove(cube);
-    }
-  }
+  findBestMove(cube) {
+    const moves = this.getAvailableMoves(cube);
+    let bestMove = null;
+    let bestScore = -1;
 
-  isWhiteCrossSolved(cube) {
-    const upFaceCubies = cube.cubies.filter(c => c.pos.y === cube.n - 1);
-    const whiteEdges = upFaceCubies.filter(c => {
-      const hasWhite = c.hasColor('U');
-      const isEdge = Object.keys(c.colors).length === 2;
-      return hasWhite && isEdge;
-    });
-
-    if (whiteEdges.length < 4) return false;
-
-    for (const cubie of whiteEdges) {
-      const expectedColors = this.getExpectedCrossColors(cubie);
-      const hasCorrectColor = expectedColors.every(color => cubie.hasColor(color));
-      if (!hasCorrectColor) return false;
-    }
-
-    return true;
-  }
-
-  getExpectedCrossColors(cubie) {
-    const { x, z } = cubie.pos;
-    const mid = Math.floor(this.cube.n / 2);
-    
-    if (cubie.pos.y === cube.n - 1) {
-      if (z === mid) return ['U', 'F'];
-      if (x === mid) return ['U', 'R'];
-      if (z === mid && x === mid) return ['U'];
-    }
-    return ['U'];
-  }
-
-  getCrossColors(cubie) {
-    const colors = [];
-    if (cubie.hasColor('U')) colors.push('U');
-    if (cubie.hasColor('F')) colors.push('F');
-    if (cubie.hasColor('R')) colors.push('R');
-    if (cubie.hasColor('D')) colors.push('D');
-    if (cubie.hasColor('L')) colors.push('L');
-    if (cubie.hasColor('B')) colors.push('B');
-    return colors;
-  }
-
-  findCrossMove(cube) {
-    const upFaceCubies = cube.cubies.filter(c => c.pos.y === cube.n - 1);
-    const whiteEdges = upFaceCubies.filter(c => {
-      return c.hasColor('U') && Object.keys(c.colors).length === 2;
-    });
-
-    const unsolvedEdges = whiteEdges.filter(c => {
-      const expectedFace = this.getCrossDirection(c);
-      return !c.hasColor(expectedFace);
-    });
-
-    if (unsolvedEdges.length > 0) {
-      return 'F';
-    }
-
-    return 'U';
-  }
-
-  getCrossDirection(cubie) {
-    const { x, z } = cubie.pos;
-    const mid = Math.floor(cube.n / 2);
-    
-    if (x === mid && z === mid + 1) return 'F';
-    if (x === mid + 1 && z === mid) return 'R';
-    if (x === mid && z === mid - 1) return 'B';
-    if (x === mid - 1 && z === mid) return 'L';
-    return 'U';
-  }
-
-  findF2LMove(cube) {
-    return 'R U R\' U\'';
-  }
-
-  initPhase1Algorithms() {
-    return {
-      'U': ['R U R\' U\'', 'R U\' R\' U'],
-      'R': ['R\' U\' R U', 'R\' U R U\''],
-      'F': ['F R\' F\' R', 'F\' R F R\''],
-    };
-  }
-
-  initPhase2Algorithms() {
-    return {
-      'cross': ['F R U R\' U\' F\''],
-      'oll': ['U R U R\' U\' R\' F R F\''],
-      'pll': ['R U R\' U\' R\' F R2 U\' R\' U\' R U R\' F\''],
-    };
-  }
-
-  solveLargeCube(cube) {
-    const solution = [];
-    const testCube = cube.clone();
-
-    solution.push(...this.solveCenters(testCube));
-    solution.push(...this.solveEdges(testCube));
-    solution.push(...this.solveAs3x3(testCube));
-
-    return this.optimizeSolution(solution);
-  }
-
-  solveCenters(cube) {
-    const moves = [];
-    const faceCenters = ['U', 'D', 'L', 'R', 'F', 'B'];
-
-    for (const face of faceCenters) {
-      const layer = face === 'U' ? cube.n - 1 : face === 'D' ? 0 : 
-                    face === 'L' ? 0 : face === 'R' ? cube.n - 1 :
-                    face === 'F' ? cube.n - 1 : 0;
-      const axis = face === 'U' || face === 'D' ? 'y' : face === 'L' || face === 'R' ? 'x' : 'z';
-
-      for (let i = 0; i < 4; i++) {
-        if (!this.isCenterSolved(cube, face)) {
-          moves.push(face);
-          cube.move(face, true);
-        }
+    for (const move of moves) {
+      const testCube = cube.clone();
+      testCube.move(move, false);
+      const score = this.evaluateCube(testCube);
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = move;
       }
+    }
+
+    return bestMove;
+  }
+
+  getAvailableMoves(cube) {
+    const lastMove = cube.moveLog[cube.moveLog.length - 1];
+    const lastFace = lastMove ? lastMove.replace("'", "") : null;
+    const moves = [];
+
+    for (const face of BASE_MOVES) {
+      if (face === lastFace) continue;
+      moves.push(face);
+      moves.push(face + "'");
     }
 
     return moves;
   }
 
-  isCenterSolved(cube, face) {
-    const layer = face === 'U' ? cube.n - 1 : face === 'D' ? 0 : 
-                  face === 'L' ? 0 : face === 'R' ? cube.n - 1 :
-                  face === 'F' ? cube.n - 1 : 0;
+  evaluateCube(cube) {
+    let score = 0;
+
+    score += this.evaluateCross(cube) * 10;
+    score += this.evaluateF2L(cube) * 5;
+    score += this.evaluateCenters(cube) * 3;
+
+    return score;
+  }
+
+  evaluateCross(cube) {
+    const crossEdges = [
+      { x: 1, y: 2, z: 2, faces: ['U', 'F'] },
+      { x: 2, y: 2, z: 1, faces: ['U', 'R'] },
+      { x: 1, y: 2, z: 0, faces: ['U', 'B'] },
+      { x: 0, y: 2, z: 1, faces: ['U', 'L'] }
+    ];
+
+    let solved = 0;
+    for (const edge of crossEdges) {
+      const cubie = cube.getCubie(edge.x, edge.y, edge.z);
+      if (cubie && cubie.faceColors.py === 0xffffff && cubie.faceColors.pz === 0xff0000) {
+        solved++;
+      }
+    }
+    return solved;
+  }
+
+  evaluateF2L(cube) {
+    return 0;
+  }
+
+  evaluateCenters(cube) {
+    const centerColors = {
+      U: cube.getCubie(1, 2, 1)?.faceColors.py,
+      D: cube.getCubie(1, 0, 1)?.faceColors.ny,
+      F: cube.getCubie(1, 1, 2)?.faceColors.pz,
+      B: cube.getCubie(1, 1, 0)?.faceColors.nz,
+      L: cube.getCubie(0, 1, 1)?.faceColors.nx,
+      R: cube.getCubie(2, 1, 1)?.faceColors.px
+    };
+
+    let matches = 0;
+    const expected = { U: 0xffffff, D: 0xffff00, F: 0xff0000, B: 0xff8800, L: 0x00ff00, R: 0x0000ff };
+
+    for (const face of Object.keys(expected)) {
+      if (centerColors[face] === expected[face]) matches++;
+    }
+    return matches;
+  }
+
+  solveNxN(cube) {
+    const solution = [];
+    const testCube = cube.clone();
+
+    for (let i = 0; i < 6; i++) {
+      const face = BASE_MOVES[i];
+      for (let j = 0; j < 4; j++) {
+        if (!this.isFaceSolved(testCube, face)) {
+          testCube.move(face, true);
+          solution.push(face);
+        }
+      }
+    }
+
+    return solution;
+  }
+
+  isFaceSolved(cube, face) {
+    const layer = face === 'U' ? 2 : face === 'D' ? 0 : 
+                  face === 'L' ? 0 : face === 'R' ? 2 :
+                  face === 'F' ? 2 : 0;
     const axis = face === 'U' || face === 'D' ? 'y' : face === 'L' || face === 'R' ? 'x' : 'z';
-
-    const centerCubies = cube.cubies.filter(c => c.pos[axis] === layer);
-    const mid = Math.floor(cube.n / 2);
-    const centerCubie = centerCubies.find(c => 
-      c.pos.x === mid && c.pos.y === mid && c.pos.z === mid
-    );
-
-    if (!centerCubie) return true;
+    const cubies = cube.getCubiesInLayer(axis, layer);
     
-    const centerColor = centerCubie.getColor(face);
-    return centerCubies.every(c => c.getColor(face) === centerColor);
-  }
+    const expectedColor = { U: 0xffffff, D: 0xffff00, F: 0xff0000, B: 0xff8800, L: 0x00ff00, R: 0x0000ff }[face];
+    const faceKey = { U: 'py', D: 'ny', L: 'nx', R: 'px', F: 'pz', B: 'nz' }[face];
 
-  solveEdges(cube) {
-    return [];
-  }
-
-  solveAs3x3(cube) {
-    return this.solveSmallCube(cube);
+    return cubies.every(c => c.faceColors[faceKey] === expectedColor);
   }
 
   optimizeSolution(solution) {
     const optimized = [];
-    const moveHistory = [];
 
     for (const move of solution) {
-      if (moveHistory.length === 0) {
+      if (optimized.length === 0) {
         optimized.push(move);
-        moveHistory.push(move);
         continue;
       }
 
-      const lastMove = moveHistory[moveHistory.length - 1];
-      const baseMove = move.replace("'", "");
-      const lastBaseMove = lastMove.replace("'", "");
+      const last = optimized[optimized.length - 1];
+      const lastBase = last.replace("'", "");
+      const currBase = move.replace("'", "");
+      const lastIsPrime = last.includes("'");
+      const currIsPrime = move.includes("'");
 
-      if (baseMove === lastBaseMove) {
-        const lastIsPrime = lastMove.includes("'");
-        const currentIsPrime = move.includes("'");
-        
-        if (lastIsPrime && !currentIsPrime) {
-          moveHistory.pop();
-          const newMove = baseMove + "'";
-          if (moveHistory.length > 0 && moveHistory[moveHistory.length - 1].replace("'", "") === baseMove) {
-            moveHistory.pop();
+      if (lastBase === currBase) {
+        optimized.pop();
+        if (lastIsPrime === currIsPrime) {
+          if (lastIsPrime) {
+            optimized.push(currBase);
           } else {
-            moveHistory.push(newMove);
-            optimized.pop();
-            optimized.push(newMove);
+            optimized.push(currBase + "'");
           }
-        } else if (!lastIsPrime && currentIsPrime) {
-          moveHistory.pop();
-          optimized.pop();
-        } else if (lastIsPrime && currentIsPrime) {
-          moveHistory.pop();
-          optimized.pop();
-          optimized.push(baseMove);
-        } else {
-          moveHistory.push(move);
-          optimized.push(move);
         }
       } else {
-        moveHistory.push(move);
         optimized.push(move);
       }
     }

@@ -7,46 +7,46 @@ const COLORS = {
   F: 0xff0000,
   B: 0xff8800
 };
-const INVERSE = { U: 'U\'', D: 'D\'', L: 'L\'', R: 'R\'', F: 'F\'', B: 'B\'' };
+const FACE_AXIS = {
+  U: { axis: 'y', layer: 'max', dir: 1 },
+  D: { axis: 'y', layer: 'min', dir: -1 },
+  L: { axis: 'x', layer: 'min', dir: -1 },
+  R: { axis: 'x', layer: 'max', dir: 1 },
+  F: { axis: 'z', layer: 'max', dir: 1 },
+  B: { axis: 'z', layer: 'min', dir: -1 }
+};
 const BASE_MOVES = ['U', 'D', 'L', 'R', 'F', 'B'];
 
 class Cubie {
   constructor(x, y, z, n) {
     this.pos = { x, y, z };
-    this.originalPos = { x, y, z };
     this.n = n;
-    this.colors = this.initColors();
-  }
-
-  initColors() {
-    const colors = {};
-    const { x, y, z } = this.pos;
-    const mid = Math.floor(this.n / 2);
-
-    if (y === this.n - 1) colors.U = COLORS.U;
-    if (y === 0) colors.D = COLORS.D;
-    if (x === 0) colors.L = COLORS.L;
-    if (x === this.n - 1) colors.R = COLORS.R;
-    if (z === this.n - 1) colors.F = COLORS.F;
-    if (z === 0) colors.B = COLORS.B;
-
-    return colors;
+    this.faceColors = {
+      px: x === n - 1 ? COLORS.R : null,
+      nx: x === 0 ? COLORS.L : null,
+      py: y === n - 1 ? COLORS.U : null,
+      ny: y === 0 ? COLORS.D : null,
+      pz: z === n - 1 ? COLORS.F : null,
+      nz: z === 0 ? COLORS.B : null
+    };
   }
 
   getColor(face) {
-    return this.colors[face] || 0x333333;
+    const key = { U: 'py', D: 'ny', R: 'px', L: 'nx', F: 'pz', B: 'nz' }[face];
+    return this.faceColors[key] || 0x333333;
   }
 
   hasColor(face) {
-    return face in this.colors;
+    const key = { U: 'py', D: 'ny', R: 'px', L: 'nx', F: 'pz', B: 'nz' }[face];
+    return this.faceColors[key] !== null;
   }
 
-  removeColor(face) {
-    delete this.colors[face];
+  setFaceColor(faceKey, color) {
+    this.faceColors[faceKey] = color;
   }
 
-  setColor(face, color) {
-    this.colors[face] = color;
+  getFaceColor(faceKey) {
+    return this.faceColors[faceKey];
   }
 }
 
@@ -70,34 +70,29 @@ export class Cube {
     this.moveLog = [];
   }
 
-  getCubie(x, y, z) {
-    return this.cubies.find(c => c.pos.x === x && c.pos.y === y && c.pos.z === z);
-  }
-
-  getLayer(axis, layer) {
-    const mid = Math.floor(this.n / 2);
-    if (layer === 'top' || layer === 'right' || layer === 'front') {
-      return this.n - 1;
-    }
-    if (layer === 'bottom' || layer === 'left' || layer === 'back') {
-      return 0;
-    }
-    return mid;
-  }
-
   getCubiesInLayer(axis, layer) {
     return this.cubies.filter(c => c.pos[axis] === layer);
   }
 
-  rotateFace(face) {
-    const axis = { U: 'y', D: 'y', L: 'x', R: 'x', F: 'z', B: 'z' }[face];
-    const layer = { U: this.n - 1, D: 0, L: 0, R: this.n - 1, F: this.n - 1, B: 0 }[face];
-    const cubies = this.getCubiesInLayer(axis, layer);
-    const clockwise = face === 'U' || face === 'R' || face === 'F';
+  getLayerValue(face) {
+    const info = FACE_AXIS[face];
+    return info.layer === 'max' ? this.n - 1 : 0;
+  }
 
-    cubies.forEach(cubie => {
-      const { x, y, z } = cubie.pos;
-      if (axis === 'y') {
+  rotateFace(face) {
+    const info = FACE_AXIS[face];
+    const layer = this.getLayerValue(face);
+    const cubies = this.getCubiesInLayer(info.axis, layer);
+    const clockwise = (face === 'U' || face === 'R' || face === 'F') !== (info.dir === -1);
+
+    const oldPositions = cubies.map(c => ({ cubie: c, x: c.pos.x, y: c.pos.y, z: c.pos.z }));
+    const oldFaceColors = cubies.map(c => ({ ...c.faceColors }));
+
+    cubies.forEach((cubie, idx) => {
+      const { x, y, z } = oldPositions[idx].cubie.pos;
+      const oldColors = oldFaceColors[idx];
+
+      if (info.axis === 'y') {
         if (clockwise) {
           cubie.pos.x = this.n - 1 - z;
           cubie.pos.z = x;
@@ -105,7 +100,22 @@ export class Cube {
           cubie.pos.x = z;
           cubie.pos.z = this.n - 1 - x;
         }
-      } else if (axis === 'x') {
+        cubie.faceColors = {
+          px: oldColors.pz,
+          nx: oldColors.nz,
+          py: oldColors.py,
+          ny: oldColors.ny,
+          pz: oldColors.px,
+          nz: oldColors.nx
+        };
+        if (!clockwise) {
+          const temp = { ...cubie.faceColors };
+          cubie.faceColors.px = temp.nz;
+          cubie.faceColors.nz = temp.px;
+          cubie.faceColors.nx = temp.pz;
+          cubie.faceColors.pz = temp.nx;
+        }
+      } else if (info.axis === 'x') {
         if (clockwise) {
           cubie.pos.y = z;
           cubie.pos.z = this.n - 1 - y;
@@ -113,7 +123,15 @@ export class Cube {
           cubie.pos.y = this.n - 1 - z;
           cubie.pos.z = y;
         }
-      } else if (axis === 'z') {
+        cubie.faceColors = {
+          px: oldColors.px,
+          nx: oldColors.nx,
+          py: oldColors.pz,
+          ny: oldColors.nz,
+          pz: oldColors.ny,
+          nz: oldColors.py
+        };
+      } else if (info.axis === 'z') {
         if (clockwise) {
           cubie.pos.x = this.n - 1 - y;
           cubie.pos.y = x;
@@ -121,122 +139,14 @@ export class Cube {
           cubie.pos.x = y;
           cubie.pos.y = this.n - 1 - x;
         }
-      }
-
-      const oldColors = { ...cubie.colors };
-      cubie.colors = {};
-      if (oldColors.U) cubie.colors.U = oldColors.U;
-      if (oldColors.D) cubie.colors.D = oldColors.D;
-      if (oldColors.L) cubie.colors.L = oldColors.L;
-      if (oldColors.R) cubie.colors.R = oldColors.R;
-      if (oldColors.F) cubie.colors.F = oldColors.F;
-      if (oldColors.B) cubie.colors.B = oldColors.B;
-    });
-
-    this.rotateFaceColors(cubies, face, clockwise);
-  }
-
-  rotateFaceColors(cubies, face, clockwise) {
-    cubies.forEach(cubie => {
-      const oldColors = { ...cubie.colors };
-      cubie.colors = {};
-
-      if (face === 'U') {
-        if (clockwise) {
-          if (oldColors.R) cubie.colors.F = oldColors.R;
-          if (oldColors.B) cubie.colors.R = oldColors.B;
-          if (oldColors.L) cubie.colors.B = oldColors.L;
-          if (oldColors.F) cubie.colors.L = oldColors.F;
-          if (oldColors.U) cubie.colors.U = oldColors.U;
-          if (oldColors.D) cubie.colors.D = oldColors.D;
-        } else {
-          if (oldColors.L) cubie.colors.F = oldColors.L;
-          if (oldColors.F) cubie.colors.R = oldColors.F;
-          if (oldColors.R) cubie.colors.B = oldColors.R;
-          if (oldColors.B) cubie.colors.L = oldColors.B;
-          if (oldColors.U) cubie.colors.U = oldColors.U;
-          if (oldColors.D) cubie.colors.D = oldColors.D;
-        }
-      } else if (face === 'D') {
-        if (clockwise) {
-          if (oldColors.F) cubie.colors.R = oldColors.F;
-          if (oldColors.L) cubie.colors.F = oldColors.L;
-          if (oldColors.B) cubie.colors.L = oldColors.B;
-          if (oldColors.R) cubie.colors.B = oldColors.R;
-          if (oldColors.U) cubie.colors.U = oldColors.U;
-          if (oldColors.D) cubie.colors.D = oldColors.D;
-        } else {
-          if (oldColors.R) cubie.colors.F = oldColors.R;
-          if (oldColors.F) cubie.colors.L = oldColors.F;
-          if (oldColors.L) cubie.colors.B = oldColors.L;
-          if (oldColors.B) cubie.colors.R = oldColors.B;
-          if (oldColors.U) cubie.colors.U = oldColors.U;
-          if (oldColors.D) cubie.colors.D = oldColors.D;
-        }
-      } else if (face === 'R') {
-        if (clockwise) {
-          if (oldColors.U) cubie.colors.F = oldColors.U;
-          if (oldColors.B) cubie.colors.U = oldColors.B;
-          if (oldColors.D) cubie.colors.B = oldColors.D;
-          if (oldColors.F) cubie.colors.D = oldColors.F;
-          if (oldColors.L) cubie.colors.L = oldColors.L;
-          if (oldColors.R) cubie.colors.R = oldColors.R;
-        } else {
-          if (oldColors.F) cubie.colors.U = oldColors.F;
-          if (oldColors.U) cubie.colors.B = oldColors.U;
-          if (oldColors.B) cubie.colors.D = oldColors.B;
-          if (oldColors.D) cubie.colors.F = oldColors.D;
-          if (oldColors.L) cubie.colors.L = oldColors.L;
-          if (oldColors.R) cubie.colors.R = oldColors.R;
-        }
-      } else if (face === 'L') {
-        if (clockwise) {
-          if (oldColors.B) cubie.colors.U = oldColors.B;
-          if (oldColors.U) cubie.colors.F = oldColors.U;
-          if (oldColors.F) cubie.colors.D = oldColors.F;
-          if (oldColors.D) cubie.colors.B = oldColors.D;
-          if (oldColors.L) cubie.colors.L = oldColors.L;
-          if (oldColors.R) cubie.colors.R = oldColors.R;
-        } else {
-          if (oldColors.U) cubie.colors.B = oldColors.U;
-          if (oldColors.B) cubie.colors.D = oldColors.B;
-          if (oldColors.D) cubie.colors.F = oldColors.D;
-          if (oldColors.F) cubie.colors.U = oldColors.F;
-          if (oldColors.L) cubie.colors.L = oldColors.L;
-          if (oldColors.R) cubie.colors.R = oldColors.R;
-        }
-      } else if (face === 'F') {
-        if (clockwise) {
-          if (oldColors.U) cubie.colors.R = oldColors.U;
-          if (oldColors.L) cubie.colors.U = oldColors.L;
-          if (oldColors.D) cubie.colors.L = oldColors.D;
-          if (oldColors.R) cubie.colors.D = oldColors.R;
-          if (oldColors.F) cubie.colors.F = oldColors.F;
-          if (oldColors.B) cubie.colors.B = oldColors.B;
-        } else {
-          if (oldColors.U) cubie.colors.L = oldColors.U;
-          if (oldColors.R) cubie.colors.U = oldColors.R;
-          if (oldColors.D) cubie.colors.R = oldColors.D;
-          if (oldColors.L) cubie.colors.D = oldColors.L;
-          if (oldColors.F) cubie.colors.F = oldColors.F;
-          if (oldColors.B) cubie.colors.B = oldColors.B;
-        }
-      } else if (face === 'B') {
-        if (clockwise) {
-          if (oldColors.L) cubie.colors.U = oldColors.L;
-          if (oldColors.U) cubie.colors.R = oldColors.U;
-          if (oldColors.R) cubie.colors.D = oldColors.R;
-          if (oldColors.D) cubie.colors.L = oldColors.D;
-          if (oldColors.F) cubie.colors.F = oldColors.F;
-          if (oldColors.B) cubie.colors.B = oldColors.B;
-        } else {
-          if (oldColors.U) cubie.colors.L = oldColors.U;
-          if (oldColors.L) cubie.colors.D = oldColors.L;
-          if (oldColors.D) cubie.colors.R = oldColors.D;
-          if (oldColors.R) cubie.colors.U = oldColors.R;
-          if (oldColors.F) cubie.colors.F = oldColors.F;
-          if (oldColors.B) cubie.colors.B = oldColors.B;
-        }
+        cubie.faceColors = {
+          px: oldColors.py,
+          nx: oldColors.ny,
+          py: oldColors.nx,
+          ny: oldColors.px,
+          pz: oldColors.pz,
+          nz: oldColors.nz
+        };
       }
     });
   }
@@ -246,11 +156,12 @@ export class Cube {
     const isPrime = face.includes("'");
 
     if (isPrime) {
-      this.move(actualFace + "'", record);
-      return;
+      this.rotateFace(actualFace);
+      this.rotateFace(actualFace);
+      this.rotateFace(actualFace);
+    } else {
+      this.rotateFace(actualFace);
     }
-
-    this.rotateFace(actualFace);
 
     if (record) {
       this.moveLog.push(face);
@@ -259,7 +170,8 @@ export class Cube {
 
   inverseMove(face) {
     const actualFace = face.replace("'", '');
-    this.move(actualFace + "'", true);
+    const isPrime = face.includes("'");
+    this.move(isPrime ? actualFace : actualFace + "'", true);
   }
 
   isSolved() {
@@ -267,8 +179,8 @@ export class Cube {
       const cubiesWithFace = this.cubies.filter(c => c.hasColor(face));
       if (cubiesWithFace.length === 0) continue;
       
-      const color = cubiesWithFace[0].getColor(face);
-      if (cubiesWithFace.some(c => c.getColor(face) !== color)) {
+      const expectedColor = COLORS[face];
+      if (cubiesWithFace.some(c => c.getColor(face) !== expectedColor)) {
         return false;
       }
     }
@@ -304,7 +216,7 @@ export class Cube {
     const newCube = new Cube(this.n);
     newCube.cubies = this.cubies.map(c => {
       const newCubie = new Cubie(c.pos.x, c.pos.y, c.pos.z, c.n);
-      newCubie.colors = { ...c.colors };
+      newCubie.faceColors = { ...c.faceColors };
       return newCubie;
     });
     newCube.moveLog = [...this.moveLog];
@@ -312,4 +224,4 @@ export class Cube {
   }
 }
 
-export { FACES, COLORS, INVERSE, BASE_MOVES };
+export { FACES, COLORS, BASE_MOVES };

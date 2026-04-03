@@ -1,6 +1,5 @@
 import TWEEN from '@tweenjs/tween.js';
 import * as THREE from 'three';
-import { BASE_MOVES } from './cube.js';
 
 export class Animator {
   constructor(renderer, cube, onComplete) {
@@ -8,8 +7,7 @@ export class Animator {
     this.cube = cube;
     this.onComplete = onComplete;
     this.speed = 1.0;
-    this.isAnimating = false;
-    this.moveQueue = [];
+    this.meshCubieMap = new Map();
 
     this.pivotGroup = new THREE.Group();
     this.renderer.scene.add(this.pivotGroup);
@@ -28,26 +26,25 @@ export class Animator {
     const isPrime = move.includes("'");
     const axis = this.getAxis(face);
     const layer = this.getLayer(face);
-    const direction = isPrime ? -1 : 1;
     const clockwise = face === 'U' || face === 'R' || face === 'F' ? !isPrime : isPrime;
 
     const cubiesInLayer = this.cube.getCubiesInLayer(axis, layer);
-    const offset = (this.cube.n - 1) / 2;
 
     this.pivotGroup.rotation.set(0, 0, 0);
     this.pivotGroup.updateMatrixWorld();
+
+    this.meshCubieMap.clear();
 
     for (const cubie of cubiesInLayer) {
       const mesh = this.findMeshForCubie(cubie);
       if (mesh) {
         this.pivotGroup.attach(mesh);
+        this.meshCubieMap.set(mesh, cubie);
       }
     }
 
-    const targetRotation = Math.PI / 2 * direction;
-    const actualRotation = clockwise ? targetRotation : -targetRotation;
-
-    const rotationAxis = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) }[axis];
+    const direction = isPrime ? -1 : 1;
+    const actualRotation = clockwise ? Math.PI / 2 * direction : -Math.PI / 2 * direction;
 
     const animationDuration = 300 / this.speed;
 
@@ -58,26 +55,23 @@ export class Animator {
         .to({ rotation: actualRotation }, animationDuration)
         .easing(TWEEN.Easing.Quadratic.Out)
         .onUpdate(() => {
-          const currentRotation = startState.rotation;
-          
           if (axis === 'x') {
-            this.pivotGroup.rotation.x = currentRotation;
+            this.pivotGroup.rotation.x = startState.rotation;
           } else if (axis === 'y') {
-            this.pivotGroup.rotation.y = currentRotation;
+            this.pivotGroup.rotation.y = startState.rotation;
           } else if (axis === 'z') {
-            this.pivotGroup.rotation.z = currentRotation;
+            this.pivotGroup.rotation.z = startState.rotation;
           }
         })
         .onComplete(() => {
-          cubiesInLayer.forEach(cubie => {
-            const mesh = this.findMeshInPivot(cubie);
-            if (mesh) {
-              this.renderer.cubeGroup.attach(mesh);
-            }
-          });
+          while (this.pivotGroup.children.length > 0) {
+            const mesh = this.pivotGroup.children[0];
+            this.renderer.cubeGroup.attach(mesh);
+          }
 
           this.cube.move(move);
           this.renderer.render(this.cube);
+          this.onComplete();
           resolve();
         })
         .start();
@@ -101,18 +95,6 @@ export class Animator {
     const targetPos = new THREE.Vector3(cubie.pos.x - offset, cubie.pos.y - offset, cubie.pos.z - offset);
 
     for (const mesh of this.renderer.cubeGroup.children) {
-      if (mesh.position.distanceTo(targetPos) < 0.1) {
-        return mesh;
-      }
-    }
-    return null;
-  }
-
-  findMeshInPivot(cubie) {
-    const offset = (this.cube.n - 1) / 2;
-    const targetPos = new THREE.Vector3(cubie.pos.x - offset, cubie.pos.y - offset, cubie.pos.z - offset);
-
-    for (const mesh of this.pivotGroup.children) {
       if (mesh.position.distanceTo(targetPos) < 0.1) {
         return mesh;
       }
