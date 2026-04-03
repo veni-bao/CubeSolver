@@ -91,8 +91,15 @@ class App {
   initRenderer() {
     console.log('[DEBUG-R] Creating Renderer');
     this.renderer = new Renderer(this.container);
-    console.log('[DEBUG-R] Renderer created, setting up controls');
+    console.log('[DEBUG-R] Renderer created');
+    console.log('[DEBUG-R] renderer.domElement:', this.renderer.domElement);
+    console.log('[DEBUG-R] renderer.domElement.style:', this.renderer.domElement?.style);
     
+    if (!this.renderer.domElement) {
+      throw new Error('Renderer.domElement is undefined!');
+    }
+    
+    console.log('[DEBUG-R] Setting up OrbitControls');
     this.controls = new OrbitControls(this.renderer.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
