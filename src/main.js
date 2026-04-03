@@ -44,7 +44,7 @@ class App {
 
   initRenderer() {
     this.renderer = new Renderer(this.container);
-    this.controls = new OrbitControls(this.renderer.camera, this.renderer.domElement);
+    this.controls = new OrbitControls(this.renderer.camera, this.renderer.domElement || this.renderer.canvas);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
   }
