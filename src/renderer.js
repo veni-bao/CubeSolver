@@ -11,7 +11,9 @@ export class Renderer {
   }
 
   init() {
-    this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+    const width = this.container.clientWidth || 800;
+    const height = this.container.clientHeight || 600;
+    this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.container.appendChild(this.renderer.domElement);
 

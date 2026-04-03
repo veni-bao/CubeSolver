@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import TWEEN from '@tweenjs/tween.js';
 import { Cube } from './cube.js';
 import { Renderer } from './renderer.js';
@@ -18,10 +18,15 @@ class App {
     this.isSolving = false;
     this.needsRender = true;
     
-    this.init();
+    try {
+      this.init();
+    } catch (e) {
+      console.error('Initialization error:', e);
+      this.loading.innerHTML = `<p style="color:red">Error: ${e.message}</p><p>Check console for details</p>`;
+    }
   }
 
-  async init() {
+  init() {
     this.initRenderer();
     this.initCube();
     this.initAnimator();
@@ -29,7 +34,6 @@ class App {
     this.initUI();
     
     this.loading.style.display = 'none';
-    
     this.animate();
   }
 
@@ -140,16 +144,12 @@ class App {
     this.needsRender = true;
   }
 
-  requestRender() {
-    this.needsRender = true;
-  }
-
   animate() {
     requestAnimationFrame(() => this.animate());
     TWEEN.update();
     this.controls.update();
     
-    if (this.needsRender) {
+    if (this.needsRender && this.cube) {
       this.renderer.render(this.cube);
       this.needsRender = false;
     }
