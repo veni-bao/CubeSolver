@@ -2,54 +2,28 @@ import * as THREE from 'three';
 
 export class Renderer {
   constructor(container) {
-    console.log('[RENDERER] Constructor start, container:', container ? 'valid' : 'INVALID');
-    
     this.container = container;
     this.scene = new THREE.Scene();
     
-    // Check WebGL availability
     const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    if (!gl) {
-      throw new Error('WebGL not supported in this browser');
-    }
-    console.log('[RENDERER] WebGL supported');
-    
-    // Create renderer with explicit canvas
     this.renderer = new THREE.WebGLRenderer({ 
       antialias: true, 
       alpha: true,
       canvas: canvas
     });
     
-    console.log('[RENDERER] WebGLRenderer created, domElement:', this.renderer.domElement);
-    
-    // Set size before init
     const width = this.container.clientWidth || 800;
     const height = this.container.clientHeight || 600;
     this.renderer.setSize(width, height);
-    console.log('[RENDERER] Size set to', width, 'x', height);
     
     this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    console.log('[RENDERER] Camera created');
-    
     this.init();
   }
 
   init() {
-    console.log('[RENDERER] init() start');
-    
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    
-    // Ensure domElement exists and has proper style
-    if (!this.renderer.domElement) {
-      console.error('[RENDERER] domElement is undefined!');
-      throw new Error('Renderer domElement not created');
-    }
-    
     this.renderer.domElement.style.display = 'block';
     this.container.appendChild(this.renderer.domElement);
-    console.log('[RENDERER] domElement appended to container');
 
     this.camera.position.set(5, 5, 7);
     this.camera.lookAt(0, 0, 0);
@@ -69,8 +43,6 @@ export class Renderer {
     this.scene.add(this.cubeGroup);
 
     window.addEventListener('resize', () => this.onResize());
-    
-    console.log('[RENDERER] init() complete, domElement:', this.renderer.domElement);
   }
 
   render(cube) {
