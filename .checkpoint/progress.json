@@ -10,6 +10,6 @@
     "5": { "status": "completed", "completedAt": "2026-04-03T00:00:00Z" },
     "6": { "status": "completed", "completedAt": "2026-04-03T00:00:00Z", "notes": "Large N optimization with instanced rendering for N>10" },
     "7": { "status": "completed", "completedAt": "2026-04-03T00:00:00Z", "notes": "UI controls with dark theme" },
-    "8": { "status": "in_progress", "startedAt": "2026-04-03T00:00:00Z" }
+    "8": { "status": "completed", "completedAt": "2026-04-03T00:00:00Z", "notes": "Render loop optimization, animation fixes" }
   }
 }
