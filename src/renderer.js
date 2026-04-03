@@ -43,6 +43,14 @@ export class Renderer {
       this.cubeGroup.remove(child);
     }
 
+    if (cube.n <= 10) {
+      this.renderIndividual(cube);
+    } else {
+      this.renderInstancedOptimized(cube);
+    }
+  }
+
+  renderIndividual(cube) {
     const gap = 0.05;
     const cubieSize = 1;
     const offset = (cube.n - 1) / 2;
@@ -50,7 +58,7 @@ export class Renderer {
     const boxGeometry = new THREE.BoxGeometry(cubieSize - gap * 0.5, cubieSize - gap * 0.5, cubieSize - gap * 0.5);
 
     for (const cubie of cube.cubies) {
-      const materials = this.createCubieMaterials(cubie, cube.n);
+      const materials = this.createCubieMaterials(cubie);
       const mesh = new THREE.Mesh(boxGeometry, materials);
       
       mesh.position.set(
@@ -61,33 +69,54 @@ export class Renderer {
       
       this.cubeGroup.add(mesh);
     }
-
-    const groupSize = cube.n * cubieSize + gap * cube.n;
-    this.cubeGroup.position.set(0, 0, 0);
   }
 
-  createCubieMaterials(cubie, n) {
+  renderInstancedOptimized(cube) {
+    const offset = (cube.n - 1) / 2;
+    const cubieSize = Math.max(0.3, 2 / cube.n);
+    const gap = cubieSize * 0.05;
+
+    const boxGeometry = new THREE.BoxGeometry(cubieSize - gap, cubieSize - gap, cubieSize - gap);
+    const blackMaterial = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.1, roughness: 0.8 });
+
+    const instancedMesh = new THREE.InstancedMesh(boxGeometry, blackMaterial, cube.cubies.length);
+    const matrix = new THREE.Matrix4();
+
+    for (let i = 0; i < cube.cubies.length; i++) {
+      const cubie = cube.cubies[i];
+      matrix.setPosition(
+        (cubie.pos.x - offset) * cubieSize,
+        (cubie.pos.y - offset) * cubieSize,
+        (cubie.pos.z - offset) * cubieSize
+      );
+      instancedMesh.setMatrixAt(i, matrix);
+    }
+
+    instancedMesh.instanceMatrix.needsUpdate = true;
+    this.cubeGroup.add(instancedMesh);
+
+    const cameraDistance = Math.max(5, cube.n * 0.8);
+    this.camera.position.set(cameraDistance, cameraDistance, cameraDistance * 1.2);
+    this.camera.lookAt(0, 0, 0);
+  }
+
+  createCubieMaterials(cubie) {
     const faceColors = [
-      cubie.getColor('R'),
-      cubie.getColor('L'),
-      cubie.getColor('U'),
-      cubie.getColor('D'),
-      cubie.getColor('F'),
-      cubie.getColor('B')
+      cubie.faceColors.px || 0x333333,
+      cubie.faceColors.nx || 0x333333,
+      cubie.faceColors.py || 0x333333,
+      cubie.faceColors.ny || 0x333333,
+      cubie.faceColors.pz || 0x333333,
+      cubie.faceColors.nz || 0x333333
     ];
 
     return faceColors.map(color => {
-      const isBlack = color === 0x333333 || color === undefined;
       return new THREE.MeshStandardMaterial({
-        color: isBlack ? 0x111111 : color,
+        color: color,
         metalness: 0.1,
         roughness: 0.6
       });
     });
-  }
-
-  setCubeGroup(group) {
-    this.cubeGroup = group;
   }
 
   onResize() {

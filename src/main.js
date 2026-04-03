@@ -16,6 +16,7 @@ class App {
     this.speed = 1.0;
     this.isScrambled = false;
     this.isSolving = false;
+    this.needsRender = true;
     
     this.init();
   }
@@ -76,9 +77,10 @@ class App {
     this.renderer.render(this.cube);
     this.animator.setCube(this.cube);
     this.isScrambled = false;
-    this.ui.setStatus('Idle');
+    this.ui.setStatus('Ready');
     this.ui.setMoveCount(0);
     this.ui.setSolveEnabled(false);
+    this.ui.setScrambleEnabled(true);
   }
 
   changeSpeed(speed) {
@@ -93,6 +95,7 @@ class App {
     this.isScrambled = true;
     
     this.ui.setStatus('Scrambling...');
+    this.ui.setScrambleEnabled(false);
     this.ui.setSolveEnabled(false);
     
     let moveCount = 0;
@@ -105,6 +108,7 @@ class App {
     this.ui.setStatus('Scrambled');
     this.ui.setSolveEnabled(true);
     this.ui.setMoveCount(0);
+    this.needsRender = true;
   }
 
   async solve() {
@@ -129,17 +133,26 @@ class App {
     this.ui.setScrambleEnabled(true);
     this.ui.setStatus('Solved!');
     this.ui.setMoveCount(0);
+    this.needsRender = true;
   }
 
   onMoveComplete() {
-    this.renderer.render(this.cube);
+    this.needsRender = true;
+  }
+
+  requestRender() {
+    this.needsRender = true;
   }
 
   animate() {
     requestAnimationFrame(() => this.animate());
     TWEEN.update();
     this.controls.update();
-    this.renderer.render(this.cube);
+    
+    if (this.needsRender) {
+      this.renderer.render(this.cube);
+      this.needsRender = false;
+    }
   }
 }
 
