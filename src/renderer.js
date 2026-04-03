@@ -5,11 +5,15 @@ export class Renderer {
     this.container = container;
     this.scene = new THREE.Scene();
     
-    const canvas = document.createElement('canvas');
+    this.canvas = document.createElement('canvas');
+    this.canvas.style.width = '100%';
+    this.canvas.style.height = '100%';
+    this.canvas.style.display = 'block';
+    
     this.renderer = new THREE.WebGLRenderer({ 
       antialias: true, 
       alpha: true,
-      canvas: canvas
+      canvas: this.canvas
     });
     
     const width = this.container.clientWidth || 800;
@@ -17,13 +21,13 @@ export class Renderer {
     this.renderer.setSize(width, height);
     
     this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    this.domElement = this.canvas;
     this.init();
   }
 
   init() {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.domElement.style.display = 'block';
-    this.container.appendChild(this.renderer.domElement);
+    this.container.appendChild(this.canvas);
 
     this.camera.position.set(5, 5, 7);
     this.camera.lookAt(0, 0, 0);
